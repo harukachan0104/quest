@@ -132,7 +132,7 @@
         const CORRECT_PASSWORD = '1234';
 
         // ★ここにステップ1でコピーした「ウェブアプリのURL」を貼り付けてください！
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzB3YEIdE4dqlUXOqG-CmDrbDjkr4Psrwfs5C5aW9nGaTOfghckBBpq0Gwy_2PR_qxF/exec';
+        const GOOGLE_SCRIPT_URL = 'ここにURLを貼り付けます';
 
         const defaultQuests = [
             { id: 'd1', type: 'daily', title: 'しゅくだい と あしたの じゅんび', desc: '夕ごはんの まえに おわらせる！', points: 20 },
@@ -149,7 +149,8 @@
             { id: 'r4', type: 'reward', title: 'マイクラの時間を「30分えんちょう」できる券', desc: 'もうちょっと建築を続けたいときに！', cost: 150 }
         ];
 
-        let state = { points: 0, completedQuests: {}, isParentMode: false, quests: [], rewards: [] };
+        // データの初期状態（lastResetDateを追加）
+        let state = { points: 0, completedQuests: {}, isParentMode: false, quests: [], rewards: [], lastResetDate: "" };
 
         function checkPassword() {
             const input = document.getElementById('pass-input').value;
@@ -164,11 +165,44 @@
             }
         }
 
-        // サーバー（スプレッドシート）からデータを読み込む
+        // 今日の日付を取得する関数 (YYYY-MM-DD)
+        function getTodayString() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const date = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${date}`;
+        }
+
+        // 日付をチェックして自動リセットする関数
+        function checkDailyReset() {
+            const today = getTodayString();
+            // 前回保存した日付と今日が違う場合、リセットを発動
+            if (state.lastResetDate !== today) {
+                let hasChanges = false;
+                // まいにちクエスト(typeがdaily)のクリアフラグだけを一斉に解除
+                state.quests.forEach(quest => {
+                    if (quest.type === 'daily' && state.completedQuests[quest.id]) {
+                        delete state.completedQuests[quest.id];
+                        hasChanges = true;
+                    }
+                });
+                
+                // 日付を今日に更新
+                state.lastResetDate = today;
+                
+                // もしリセットが発生したらサーバーへ即自動セーブ
+                if (hasChanges || state.lastResetDate === today) {
+                    saveStateToServer();
+                    showToast("☀️ あたらしい朝！まいにちクエストがリセットされたよ");
+                }
+            }
+        }
+
         function loadStateFromServer() {
-            if(!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes('ここにURL')) {
-                // URLが未設定の場合は初期データ
+            if(!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes('https://script.google.com/macros/s/AKfycbzB3YEIdE4dqlUXOqG-CmDrbDjkr4Psrwfs5C5aW9nGaTOfghckBBpq0Gwy_2PR_qxF/exec')) {
                 state.quests = defaultQuests; state.rewards = defaultRewards;
+                state.lastResetDate = getTodayString();
                 renderApp(); return;
             }
             showToast("⏳ データを よみこみ中...");
@@ -178,8 +212,11 @@
                     if (data && data.quests) {
                         state = data;
                         state.isParentMode = false;
+                        // 読み込みが完了した直後に、日が変わっているかチェック
+                        checkDailyReset();
                     } else {
                         state.quests = defaultQuests; state.rewards = defaultRewards;
+                        state.lastResetDate = getTodayString();
                     }
                     document.getElementById('total-points').innerText = state.points;
                     renderApp();
@@ -192,10 +229,8 @@
                 });
         }
 
-        // サーバー（スプレッドシート）へデータを保存する
         function saveStateToServer() {
             if(!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes('ここにURL')) return;
-            // 通信のために一時的にモードフラグは落として保存
             const backupMode = state.isParentMode;
             state.isParentMode = false;
             
