@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>おやこでクエスト！</title>
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #eef2f7;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-sub: #666666;
+            --primary: #4caf50;
+            --primary-dark: #388e3c;
+            --accent-orange: #ff9800;
+            --accent-blue: #2196f3;
+            --accent-purple: #9c27b0;
+            --accent-pink: #e91e63;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+            --radius: 16px;
+        }
+
+        body.parent-mode {
+            --bg-color: #f7f1ee;
+            --primary: #e91e63;
+            --primary-dark: #c2185b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Kiwi Maru', serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding-bottom: 80px;
+            transition: background-color 0.3s;
+        }
+
+        /* ゲートキーパー（パスワード画面） */
+        #lock-screen {
+            position: fixed;
+            top:0; left:0; width:100vw; height:100vh;
+            background: linear-gradient(135deg, #4caf50, #2196f3);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 20px;
+        }
+        .lock-box {
+            background: rgba(255,255,255,0.95);
+            padding: 30px 24px;
+            border-radius: 20px;
+            color: #333;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 360px;
+        }
+        .lock-box h2 { font-size: 1.3rem; margin-bottom: 15px; color: #388e3c; }
+        .lock-box p { font-size: 0.9rem; margin-bottom: 20px; color: #666; }
+        .lock-input {
+            width: 100%;
+            padding: 12px;
+            font-size: 1.2rem;
+            text-align: center;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            letter-spacing: 4px;
+        }
+        .lock-btn {
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* アプリ本体の隠し設定 */
+        #app-content {
+            display: none;
+        }
+
+        /* ヘッダー */
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 20px 16px;
+            text-align: center;
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        .header-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ステータスバー（ポイント表示） */
+        .status-bar {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 10px 20px;
+            border-radius: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            backdrop-filter: blur(4px);
+        }
+
+        .status-bar i {
+            color: #ffd700;
+            font-size: 1.4rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* モード切替ボタン */
+        .mode-toggle {
+            position: absolute;
+            top: 20px;
+            right: 16px;
+            background: rgba(255,255,255,0.3);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* メインコンテンツ */
+        main {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 16px;
+        }
+
+        /* タブ切り替え */
+        .tabs {
+            display: flex;
+            background: #e0e0e0;
+            border-radius: 30px;
+            padding: 4px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .tab-btn {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 12px;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-sub);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--primary-dark);
+            box-shadow: var(--shadow);
+        }
+
+        /* コンテンツエリア */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* クエスト・ごほうびカード共通 */
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 14px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+            border-left: 6px solid var(--accent-orange);
+            transition: transform 0.2s, opacity 0.3s;
+        }
+
+        .card.daily { border-left-color: var(--accent-blue); }
+        .card.long { border-left-color: var(--accent-purple); }
+        .card.reward { border-left-color: var(--accent-pink); }
+
+        .card.completed {
+            opacity: 0.6;
+            transform: scale(0.98);
+            border-left-color: #9e9e9e;
+        }
+
+        .card-info {
+            flex: 1;
+        }
+
+        .card-tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .card.daily .card-tag { background: var(--accent-blue); }
+        .card.long .card-tag { background: var(--accent-purple); }
+        .card.reward .card-tag { background: var(--accent-pink); }
+        .card.completed .card-tag { background: #9e9e9e; }
+
+        .card-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+            line-height: 1.4;
+            margin-bottom: 4px;
+        }
+
+        .card-desc {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            line-height: 1.3;
+        }
+
+        .card-action {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-width: 125px;
+        }
+
+        .point-badge {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #e65100;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .action-btn {
+            border: none;
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            text-align: center;
+            transition: background 0.2s;
+        }
+
+        .quest-btn { background: #ffca28; color: #5d4037; }
+        .quest-btn:hover { background: #ffb300; }
+        .reward-btn { background: #f48fb1; color: #880e4f; }
+        .reward-btn:hover { background: #f06292; }
+
+        .action-btn:disabled {
+            background: #e0e0e0;
+            color: #9e9e9e;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* 親モード専用要素・追加ボタン */
+        .parent-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            width: 100%;
+        }
+
+        .parent-row {
+            display: flex;
+            gap: 4px;
+            width: 100%;
+        }
+        
+        .parent-control-btn {
+            background: #e91e63;
+            color: white;
+            border: none;
+            padding: 6px 4px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-weight: bold;
+            flex: 1;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+        }
+        .parent-control-btn.edit-btn { background: #0288d1; flex: 2; }
+        .parent-control-btn.delete-btn { background: #757575; flex: 2; }
+        .parent-control-btn.move-btn { background: #ff9800; flex: 1; }
+        .parent-control-btn.revoke-btn { background: #e91e63; width: 100%; padding: 6px 8px; margin-bottom: 2px; }
+
+        .add-item-container {
+            display: none;
+            margin-top: 10px;
+            margin-bottom: 25px;
+        }
+        body.parent-mode .add-item-container {
+            display: block;
+        }
+
+        .add-btn-trigger {
+            background: #fff;
+            color: var(--primary-dark);
+            border: 2px dashed var(--primary);
+            border-radius: var(--radius);
+            padding: 14px;
+            width: 100%;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        /* トースト通知 */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(0,0,0,0.85);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            z-index: 1000;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
+            white-space: nowrap;
+        }
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ロック画面（認証用） -->
+    <div id="lock-screen">
+        <div class="lock-box">
+            <h2><i class="fa-solid fa-key"></i> あいことば認証</h2>
+            <p>家族のアプリです。合言葉を入れてね！</p>
+            <input type="password" id="pass-input" class="lock-input" placeholder="****" inputmode="numeric">
+            <button class="lock-btn" onclick="checkPassword()">ぼうけんを はじめる</button>
+        </div>
+    </div>
+
+    <!-- アプリ本体コンテンツ（認証成功まで非表示） -->
+    <div id="app-content">
+        <!-- ヘッダー -->
+        <header>
+            <button class="mode-toggle" onclick="toggleParentMode()">
+                <i class="fa-solid fa-user-gear"></i> <span id="mode-text">おやモード</span>
+            </button>
+            <div class="header-title">
+                <i class="fa-solid fa-shield-cat"></i>
+                <span>おやこでクエスト！</span>
+            </div>
+            <div class="status-bar">
+                <i class="fa-solid fa-gem"></i>
+                <span id="total-points">0</span><span> pt</span>
+            </div>
+        </header>
+
+        <!-- メインコンテンツ -->
+        <main>
+            <!-- タブ切り替え -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('daily-tab', this)">
+                    <i class="fa-solid fa-calendar-day"></i> まいにち
+                </button>
+                <button class="tab-btn" onclick="switchTab('long-tab', this)">
+                    <i class="fa-solid fa-trophy"></i> もくひょう
+                </button>
+                <button class="tab-btn" onclick="switchTab('reward-tab', this)">
+                    <i class="fa-solid fa-gift"></i> ごほうび
+                </button>
+            </div>
+
+            <!-- まいにちのクエスト -->
+            <div id="daily-tab" class="tab-content active"></div>
+            <div class="add-item-container" id="add-daily-box">
+                <button class="add-btn-trigger" onclick="addNewItem('daily')"><i class="fa-solid fa-plus"></i> まいにちのクエストを追加</button>
+            </div>
+
+            <!-- 長期目標クエスト -->
+            <div id="long-tab" class="tab-content"></div>
+            <div class="add-item-container" id="add-long-box">
+                <button class="add-btn-trigger" onclick="addNewItem('long')"><i class="fa-solid fa-plus"></i> 長期もくひょうを追加</button>
+            </div>
+
+            <!-- ごほうび -->
+            <div id="reward-tab" class="tab-content"></div>
+            <div class="add-item-container" id="add-reward-box">
+                <button class="add-btn-trigger" onclick="addNewItem('reward')"><i class="fa-solid fa-plus"></i> ごほうびを追加</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- トースト通知用 -->
+    <div id="toast"></div>
+
+    <script>
+        // ★ここに家族共通の合言葉を設定します（自由に変更してください）
+        const CORRECT_PASSWORD = '1234';
+
+        // パスワードチェック
+        function checkPassword() {
+            const input = document.getElementById('pass-input').value;
+            if (input === CORRECT_PASSWORD) {
+                // ロックを解除してアプリを表示
+                document.getElementById('lock-screen').style.display = 'none';
+                document.getElementById('app-content').style.display = 'block';
+                // 一度成功したらセッションに保存（タブを閉じるまでは再入力不要にする）
+                sessionStorage.setItem('quest_authed', 'true');
+                loadState();
+                renderApp();
+            } else {
+                alert('あれ？あいことばが ちがうみたい。');
+                document.getElementById('pass-input').value = '';
+            }
+        }
+
+        // 初期データ
+        const defaultQuests = [
+            { id: 'd1', type: 'daily', title: 'しゅくだい と あしたの じゅんび', desc: '夕ごはんの まえに おわらせる！', points: 20 },
+            { id: 'd2', type: 'daily', title: 'かんじの かきとり「3もじ」', desc: 'きたなくてもOK！3文字かけたら大せいかい！', points: 20 },
+            { id: 'd3', type: 'daily', title: 'おしゅうじ「さいこうの 1もじ」', desc: 'いちばん カッコよくかけた文字を お母さんに みせる！', points: 25 },
+            { id: 'd4', type: 'daily', title: 'けいさんドリルの「たしかめ算」', desc: 'さいごの 2もんだけ、合っているか まほうのチェックをする！', points: 20 },
+            { id: 'd14', type: 'daily', title: '「ランドセルの おうち」に ポン！', desc: 'げんかんや床に ポイはだめ× 指定の場所に置けたら1秒でクリア！', points: 15 },
+            { id: 'd15', type: 'daily', title: 'プリントを お母さんに「はい、どうぞ」', desc: 'ランドセルから 出して わたせたら 大せいかい！', points: 15 },
+            { id: 'd16', type: 'daily', title: '落ちてるレゴを「3こ」だけ 救出！', desc: 'ぜんぶじゃなくてOK！お気に入りの3こだけ箱に もどそう！', points: 20 },
+            { id: 'd17', type: 'daily', title: '紙ごみを 1こ シュート！', desc: 'いらない紙やプリントを、ゴミ箱へポイッと投げられたらクリア！', points: 15 },
+            { id: 'd5', type: 'daily', title: 'あたらしい本を「3ページ」ひらく', desc: 'よまなくても、ページを開いて 絵を見るだけでもクリア！', points: 15 },
+            { id: 'd6', type: 'daily', title: '本のおもしろかったところを おはなし', desc: 'まんがや大ピンチずかんでもOK！1つ教えてね。', points: 10 },
+            { id: 'd12', type: 'daily', title: 'おやさいを「1回だけ ペロッと味見」', desc: 'にがてな おやさいを なめるだけ！のみこまなくてOK！', points: 20 },
+            { id: 'd13', type: 'daily', title: '自分で決めた量を のこさず食べた！', desc: 'さいしょに「これなら食べられる」ときめた量をかんしょく！', points: 15 },
+            { id: 'l1', type: 'long', title: '【マイクラプロ】大きなゆうえんち建築', desc: 'お母さんに ここが何のアトラクションか 案内してね！', points: 50 },
+            { id: 'l2', type: 'long', title: '【マイクラプロ】お城にひみつの隠し部屋', desc: 'だれにも バレない 隠し扉を つくろう！', points: 100 },
+            { id: 'l3', type: 'long', title: '【マイクラプロ】ガラスの水中水族館', desc: '海の中が 見える すてきな お部屋をつくる！', points: 150 },
+            { id: 'l4', type: 'long', title: '【水泳レベル1】お鼻まで 3秒つける', desc: 'おふろで 3秒 かぞえてみよう！', points: 50 },
+            { id: 'l5', type: 'long', title: '【水泳レベル2】おめめまで 一瞬つける', desc: '1秒だけ お顔を 水につけてみる！', points: 50 },
+            { id: 'l6', type: 'long', title: '【水泳レベル3】お顔ぜんたい 3秒つける', desc: 'プールやおふろで 3秒がんばる！', points: 100 },
+            { id: 'l7', type: 'long', title: '【水泳レベル4】プールで 5m およぐ！', desc: 'ここまでできたら 超かっこいい大ボス！', points: 300 },
+            { id: 'l8', type: 'long', title: '【大なわレベル1】お母さんと1回とぶ', desc: 'まわっている縄の中に いっしょにたって 1回せーのでジャンプ！', points: 50 },
+            { id: 'l9', type: 'long', title: '【大なわレベル2】ひとりで入って1回とぶ', desc: 'まわっている縄に ひとりで入って 1回とびぬける！', points: 100 },
+        ];
+
+        const defaultRewards = [
+            { id: 'r1', type: 'reward', title: '【平日限定】ゲーム21時までOK券', desc: '宿題と明日の準備が終わっていれば無料でつかえるよ！', cost: 0 },
+            { id: 'r2', type: 'reward', title: '【土日祝・月曜限定】食後のお菓子1個券', desc: '曜日があっていれば 無料でつかえるよ！', cost: 0 },
+            { id: 'r3', type: 'reward', title: '今日だけ夜に「30分ふかし」していいよ券', desc: 'いつもよりちょっとだけ 夜ふかしできる魔法の券！', cost: 200 },
+            { id: 'r4', type: 'reward', title: 'マイクラの時間を「30分えんちょう」できる券', desc: 'もうちょっと建築を続けたいときに！', cost: 150 },
+            { id: 'r5', type: 'reward', title: '次の土日の夕ごはんメニューをリクエスト券', desc: 'すきなものを お母さんに作ってもらおう！', cost: 100 },
+            { id: 'r6', type: 'reward', title: '大好物（サーモン・甘えび・いくら等）トッピング券', desc: '次のご飯に大好物をすこし乗せてもらえる特権！', cost: 150 },
+            { id: 'r7', type: 'reward', title: 'チョコレートを1個 特別デザートにする券', desc: '特別なごほうびチョコをゲット！', cost: 100 },
+            { id: 'r8', type: 'reward', title: 'お母さんを1日ひとりじめデート券', desc: '2人きりでマックにいたり 公園にいたりできる最高の券！', cost: 500 },
+            { id: 'r9', type: 'reward', title: 'お母さんとマイクラワールド見学ツアー券', desc: '自分のつくった自慢の建築物を お母さんに15分案内する券！', cost: 100 },
+            { id: 'r10', type: 'reward', title: 'ガチャガチャを 1回 まわせる券', desc: 'お出かけしたときに ガチャガチャができるよ！', cost: 300 },
+        ];
+
+        let state = {
+            points: 0,
+            completedQuests: {},
+            isParentMode: false,
+            quests: [],
+            rewards: []
+        };
+
+        function loadState() {
+            const saved = localStorage.getItem('parent_child_rpg_state_v4');
+            if (saved) {
+                state = JSON.parse(saved);
+                state.isParentMode = false;
+            } else {
+                state.quests = defaultQuests;
+                state.rewards = defaultRewards;
+            }
+            document.getElementById('total-points').innerText = state.points;
+        }
+
+        function saveState() {
+            localStorage.setItem('parent_child_rpg_state_v4', JSON.stringify(state));
+            document.getElementById('total-points').innerText = state.points;
+        }
+
+        function switchTab(tabId, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            btn.classList.add('active');
+        }
+
+        function toggleParentMode() {
+            state.isParentMode = !state.isParentMode;
+            if (state.isParentMode) {
+                document.body.classList.add('parent-mode');
+                document.getElementById('mode-text').innerText = '子どもモードへ';
+                showToast('🛠️ おやモード：編集・並べ替え・追加・削除ができます');
+            } else {
+                document.body.classList.remove('parent-mode');
+                document.getElementById('mode-text').innerText = 'おやモード';
+                showToast('🧒 子どもモードにもどったよ！');
+            }
+            renderApp();
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function completeQuest(id, points, title) {
+            if (state.isParentMode) return;
+            state.completedQuests[id] = true;
+            state.points += points;
+            saveState();
+            renderApp();
+            showToast(`🎉「${title}」クリア！ +${points}pt！`);
+        }
+
+        function revokeQuest(id, points, title) {
+            if (!state.isParentMode) return;
+            delete state.completedQuests[id];
+            state.points = Math.max(0, state.points - points);
+            saveState();
+            renderApp();
+            showToast(`消去：${title} のクリアを取り消しました`);
+        }
+
+        function moveItem(id, direction, isReward = false) {
+            if (!state.isParentMode) return;
+            if (isReward) {
+                const index = state.rewards.findIndex(r => r.id === id);
+                if (index === -1) return;
+                if (direction === 'up' && index > 0) {
+                    const temp = state.rewards[index];
+                    state.rewards[index] = state.rewards[index - 1];
+                    state.rewards[index - 1] = temp;
+                } else if (direction === 'down' && index < state.rewards.length - 1) {
+                    const temp = state.rewards[index];
+                    state.rewards[index] = state.rewards[index + 1];
+                    state.rewards[index + 1] = temp;
+                }
+            } else {
+                const targetQuest = state.quests.find(q => q.id === id);
+                if (!targetQuest) return;
+                const sameTypeQuests = state.quests.filter(q => q.type === targetQuest.type);
+                const subIndex = sameTypeQuests.findIndex(q => q.id === id);
+                if (direction === 'up' && subIndex > 0) {
+                    const targetIdx = state.quests.findIndex(q => q.id === id);
+                    const prevIdx = state.quests.findIndex(q => q.id === sameTypeQuests[subIndex - 1].id);
+                    const temp = state.quests[targetIdx];
+                    state.quests[targetIdx] = state.quests[prevIdx];
+                    state.quests[prevIdx] = temp;
+                } else if (direction === 'down' && subIndex < sameTypeQuests.length - 1) {
+                    const targetIdx = state.quests.findIndex(q => q.id === id);
+                    const nextIdx = state.quests.findIndex(q => q.id === sameTypeQuests[subIndex + 1].id);
+                    const temp = state.quests[targetIdx];
+                    state.quests[targetIdx] = state.quests[nextIdx];
+                    state.quests[nextIdx] = temp;
+                }
+            }
+            saveState();
+            renderApp();
+        }
+
+        function editItem(id, isReward = false) {
+            if (!state.isParentMode) return;
+            if (isReward) {
+                const reward = state.rewards.find(r => r.id === id);
+                if (!reward) return;
+                const newTitle = prompt('【ごほうびの編集】\n新しいタイトルを入力してください:', reward.title);
+                if (newTitle === null) return;
+                const newDesc = prompt('【ごほうびの編集】\n新しい説明文を入力してください:', reward.desc);
+                if (newDesc === null) return;
+                const newCostStr = prompt('【ごほうびの編集】\n新しく使うポイントを入力してください:', reward.cost);
+                if (newCostStr === null) return;
+                const newCost = parseInt(newCostStr, 10);
+                if (isNaN(newCost) || newCost < 0) return;
+                reward.title = newTitle || reward.title;
+                reward.desc = newDesc;
+                reward.cost = newCost;
+            } else {
+                const quest = state.quests.find(q => q.id === id);
+                if (!quest) return;
+                const newTitle = prompt('【クエストの編集】\n新しいタイトルを入力してください:', quest.title);
+                if (newTitle === null) return;
+                const newDesc = prompt('【クエストの編集】\n新しい説明文を入力してください:', quest.desc);
+                if (newDesc === null) return;
+                const newPointsStr = prompt('【クエストの編集】\n新しくもらえるポイントを入力してください:', quest.points);
+                if (newPointsStr === null) return;
+                const newPoints = parseInt(newPointsStr, 10);
+                if (isNaN(newPoints) || newPoints < 0) return;
+                quest.title = newTitle || quest.title;
+                quest.desc = newDesc;
+                quest.points = newPoints;
+            }
+            saveState();
+            renderApp();
+        }
+
+        function addNewItem(type) {
+            if (!state.isParentMode) return;
+            const title = prompt('タイトルの名前を入力してください:');
+            if (!title) return;
+            const desc = prompt('くわしい説明を入力してください:') || '';
+            const ptStr = prompt('ポイントを数字で入力してください:', '20');
+            const pt = parseInt(ptStr, 10);
+            if (isNaN(pt) || pt < 0) return;
+
+            const newItem = { id: type[0] + Date.now(), type: type, title: title, desc: desc };
+            if (type === 'reward') {
+                newItem.cost = pt;
+                state.rewards.push(newItem);
+            } else {
+                newItem.points = pt;
+                state.quests.push(newItem);
+            }
+            saveState();
+            renderApp();
+        }
+
+        function deleteItem(id, title, isReward = false) {
+            if (!state.isParentMode) return;
+            if (!confirm(`本当に「${title}」を削除してもいいですか？`)) return;
+            if (isReward) {
+                state.rewards = state.rewards.filter(r => r.id !== id);
+            } else {
+                state.quests = state.quests.filter(q => q.id !== id);
+                delete state.completedQuests[id];
+            }
+            saveState();
+            renderApp();
+        }
+
+        function exchangeReward(id, cost, title) {
+            if (state.isParentMode) return;
+            if (state.points < cost) {
+                showToast('⚠️ ポイントが たりないよ！');
+                return;
+            }
+            state.points -= cost;
+            saveState();
+            renderApp();
+            showToast(`🎁「${title}」を つかったよ！お母さんに教えてね！`);
+        }
+
+        function renderApp() {
+            const dailyContainer = document.getElementById('daily-tab');
+            const longContainer = document.getElementById('long-tab');
+            const rewardContainer = document.getElementById('reward-tab');
+
+            dailyContainer.innerHTML = '';
+            longContainer.innerHTML = '';
+            rewardContainer.innerHTML = '';
+
+            state.quests.forEach(quest => {
+                const isDone = !!state.completedQuests[quest.id];
+                const card = document.createElement('div');
+                card.className = `card ${quest.type} ${isDone ? 'completed' : ''}`;
+                
+                let actionHTML = '';
+                if (state.isParentMode) {
+                    actionHTML = `
+                        <div class="parent-actions">
+                            ${isDone ? `<button class="parent-control-btn revoke-btn" onclick="revokeQuest('${quest.id}', ${quest.points}, '${quest.title}')">クリア消去</button>` : ''}
+                            <div class="parent-row">
+                                <button class="parent-control-btn edit-btn" onclick="editItem('${quest.id}', false)"><i class="fa-solid fa-pen"></i> 編集 (${quest.points}pt)</button>
+                                <button class="parent-control-btn move-btn" onclick="moveItem('${quest.id}', 'up', false)"><i class="fa-solid fa-arrow-up"></i></button>
+                                <button class="parent-control-btn move-btn" onclick="moveItem('${quest.id}', 'down', false)"><i class="fa-solid fa-arrow-down"></i></button>
+                            </div>
+                            <button class="parent-control-btn delete-btn" onclick="deleteItem('${quest.id}', '${quest.title}', false)"><i class="fa-solid fa-trash"></i> 削除</button>
+                        </div>
+                    `;
+                } else {
+                    actionHTML = `
+                        <div class="point-badge"><i class="fa-solid fa-gem"></i> ${quest.points}</div>
+                        <button class="action-btn quest-btn" ${isDone ? 'disabled' : ''} onclick="completeQuest('${quest.id}', ${quest.points}, '${quest.title}')">
+                            ${isDone ? 'クリアずみ' : 'できた！'}
+                        </button>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="card-info">
+                        <span class="card-tag">${quest.type === 'daily' ? 'まいにち' : 'もくひょう'}</span>
+                        <div class="card-title">${quest.title}</div>
+                        <div class="card-desc">${quest.desc}</div>
+                    </div>
+                    <div class="card-action">${actionHTML}</div>
+                `;
+
+                if (quest.type === 'daily') dailyContainer.appendChild(card);
+                else longContainer.appendChild(card);
+            });
+
+            state.rewards.forEach(reward => {
+                const card = document.createElement('div');
+                card.className = 'card reward';
+                const canAfford = state.points >= reward.cost;
+
+                let actionHTML = '';
+                if (state.isParentMode) {
+                    actionHTML = `
+                        <div class="parent-actions">
+                            <div class="parent-row">
+                                <button class="parent-control-btn edit-btn" onclick="editItem('${reward.id}', true)"><i class="fa-solid fa-pen"></i> 編集 (${reward.cost}pt)</button>
+                                <button class="parent-control-btn move-btn" onclick="moveItem('${reward.id}', 'up', true)"><i class="fa-solid fa-arrow-up"></i></button>
+                                <button class="parent-control-btn move-btn" onclick="moveItem('${reward.id}', 'down', true)"><i class="fa-solid fa-arrow-down"></i></button>
+                            </div>
+                            <button class="parent-control-btn delete-btn" onclick="deleteItem('${reward.id}', '${reward.title}', true)"><i class="fa-solid fa-trash"></i> 削除</button>
+                        </div>
+                    `;
+                } else {
+                    actionHTML = `
+                        <div class="point-badge" style="color: #c2185b;"><i class="fa-solid fa-gem"></i> ${reward.cost}</div>
+                        <button class="action-btn reward-btn" ${!canAfford && reward.cost > 0 ? 'disabled' : ''} onclick="exchangeReward('${reward.id}', ${reward.cost}, '${reward.title}')">
+                            つかう！
+                        </button>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="card-info">
+                        <span class="card-tag">ごほうび</span>
+                        <div class="card-title">${reward.title}</div>
+                        <div class="card-desc">${reward.desc}</div>
+                    </div>
+                    <div class="card-action">${actionHTML}</div>
+                `;
+                rewardContainer.appendChild(card);
+            });
+        }
+
+        window.onload = function() {
+            // セッション認証がすでにあればロックをスキップ
+            if (sessionStorage.getItem('quest_authed') === 'true') {
+                document.getElementById('lock-screen').style.display = 'none';
+                document.getElementById('app-content').style.display = 'block';
+                loadState();
+                renderApp();
+            }
+        };
+    </script>
+</body>
+</html>
